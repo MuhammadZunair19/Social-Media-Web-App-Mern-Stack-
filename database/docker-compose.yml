@@ -1,0 +1,52 @@
+version: "3.8"
+services:
+  frontend:
+    build:
+      context: ../client
+      dockerfile: DockerFile
+    container_name: frontend-app
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend
+
+  nginx:
+    image: nginx:alpine
+    container_name: nginx-load-balancer
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+
+  backend:
+    build:
+      context: ../Server
+      dockerfile: DockerFile
+    container_name: backend-app
+    ports:
+      - "5000:5000"
+    environment:
+      - MONGO_URI=mongodb://admin:password@database:27017/social-media?authSource=admin
+    depends_on:
+      - database
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:5000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  database:
+    image: mongo:6
+    container_name: mongo-db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: admin
+      MONGO_INITDB_ROOT_PASSWORD: 123$
+
+volumes:
+  mongo-data:
